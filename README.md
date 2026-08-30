@@ -1,195 +1,167 @@
-# farm-ts
+# TRACE
 
-Minimal split backend/frontend starter: **FastAPI + MongoDB** behind a
-**Vite + React 19 + TypeScript** frontend, joined by a small typed fetch layer
-over `/api`. This is a bare skeleton — no app features are implemented. Build on
-top of it.
+## Tyre Intelligence for Motorsport
 
-## Layout
+> **TRACE isolates the tyre signal hidden inside noisy race telemetry and turns it into actionable race strategy.**
 
-```
-farm-ts/
-  backend/   FastAPI + motor (async MongoDB) + Pydantic v2 — python, /root/.venv
-  frontend/  Vite + React 19 + Tailwind v4 + shadcn/ui (TypeScript strict)
-  tests/     Playwright e2e workspace (pre-scaffolded)
-```
+TRACE is an AI-powered motorsport intelligence platform designed to solve one of the hardest problems in race strategy: **separating true tyre degradation from everything else affecting lap time.**
 
-## Running
+Instead of simply plotting lap time against tyre age, TRACE analyses telemetry, identifies unreliable laps, accounts for measurable confounding factors, predicts degradation behaviour, evaluates pit strategies, and validates predictions against actual race performance.
 
-Two separate processes, managed by supervisor in the pod (see "Pod conventions"
-below); to run them by hand from two terminals instead:
+---
+![Uploading Screenshot 2026-08-30 at 1.49.02 AM.png…]()
 
-```bash
-cd backend && uvicorn server:app --host 0.0.0.0 --port 8001 --reload   # http://localhost:8001
-cd frontend && yarn dev                                                # http://localhost:3000
-```
+## The Problem
 
-## The `/api` proxy convention
+A slower lap does not necessarily mean the tyre is degrading.
 
-Every backend route lives under `/api` (the backend mounts one
-`APIRouter(prefix="/api")`), and the frontend dev server
-(`frontend/vite.config.ts`) proxies `/api/*` to `http://localhost:8001`. So
-frontend code always calls a **relative** path — `apiGet("/status")` →
-`/api/status` — and never an absolute backend URL. The same code works in dev
-(via the Vite proxy) and in production (once both are served behind a single
-origin).
+Lap time can change because of:
 
-## Backend
+- Tyre age and degradation
+- Fuel load
+- Traffic
+- Track evolution
+- Temperature
+- Driver variation
+- Other session-specific factors
 
-FastAPI, async throughout. `python` is the app venv interpreter
-(`/root/.venv/bin/python`); backend deps are pip-installed from
-`backend/requirements.txt`.
+Traditional approaches can easily mistake these effects for tyre wear.
 
-- **Entry point**: `backend/server.py` — creates `app = FastAPI()`, creates
-  `api_router = APIRouter(prefix="/api")`, registers routes **on the router**,
-  and calls `app.include_router(api_router)` at the bottom. CORS middleware is
-  added from `CORS_ORIGINS`. Never hang a route directly off `app` — it would
-  land outside `/api` and the Vite proxy would not reach it.
-- **The route pattern** (copy `status` in `server.py`):
-  1. a Pydantic model per request body and per response
-     (`StatusCheckCreate` / `StatusCheck`);
-  2. an `async def` handler decorated with
-     `@api_router.post("/status", response_model=StatusCheck)`;
-  3. `await` the motor call inside it.
-  FastAPI validates the request against the Pydantic model before your handler
-  runs — a malformed body never reaches your code, it gets an automatic `422`
-  with a `{"detail": [...]}` body.
-- **Growing the backend**: as `server.py` gets crowded, move models to
-  `backend/models/` and routers to `backend/routers/` (one module per resource,
-  each exporting its own `APIRouter`, mounted from `server.py` via
-  `api_router.include_router(...)` or `app.include_router(...)` with the `/api`
-  prefix preserved).
-- **MongoDB**: import the shared handle — `from lib.db import client, db`
-  (`backend/lib/db.py` self-loads `.env` before reading env). Use it from
-  `server.py`, every router, and standalone scripts like `seed.py`; never
-  construct another `AsyncIOMotorClient`. Collections are attributes:
-  `await db.status_checks.insert_one(...)`, `await db.status_checks.find().to_list(1000)`.
-  Motor connects lazily, so importing `server` never blocks on Mongo. `pymongo`
-  is installed too if you need a sync client in a script.
-- **Ids**: documents use a string `id` (`uuid4`) field, not Mongo's `ObjectId`
-  — `ObjectId` is not JSON-serializable and leaks into response bodies. Keep the
-  `uuid4` default-factory pattern from `StatusCheck`.
-- **Config**: `backend/.env` — `MONGO_URL` (connection string), `DB_NAME`
-  (database name), `CORS_ORIGINS`. `server.py` loads it with `python-dotenv`
-  above its local imports, and `lib/db.py` self-loads it so standalone scripts
-  inherit it too. The pod runs `mongod` locally, so `MONGO_URL` points at
-  `localhost`. Add new secrets/config here; read them with `os.environ`.
-- **Dates**: `backend/lib/dates.py` — `today_iso(tz=None)`. The pod clock is
-  UTC; anchor "today" server-side with this, never with client-side date math.
-- **Interactive check**: `cd /app/backend && python -c 'import server'` catches
-  syntax/import errors without waiting for the supervisor log.
+This produces noisy degradation estimates and makes it difficult to answer the questions that actually matter:
 
-## Frontend
+**How much pace are we losing because of the tyre?**
 
-- Vite + React 19 + TypeScript strict, dev server on port `3000`.
-- Tailwind CSS v4 (via the `@tailwindcss/vite` plugin — no separate
-  `tailwind.config.js` needed) + shadcn/ui, initialized with the `base-nova`
-  style and `neutral` base color, `@` path alias (`@/*` → `src/*`) wired in both
-  `tsconfig.app.json`/`tsconfig.json` and `vite.config.ts`.
-- `react-router-dom` and `motion` are preinstalled — don't re-add them. `src/App.tsx`
-  is the `<Routes>` table and nothing else; screens live in `src/pages/*.tsx` and are
-  imported as `@/pages/<Name>`. `src/pages/Home.tsx` ships as the worked example. Add
-  a `<Route>` for every page you write, in the same edit that creates the page — a
-  page with no route is unreachable, and any URL without a matching `<Route>` renders a
-  **blank page** — `<Routes>` matches nothing and mounts nothing.
-- Components installed under `src/components/ui/`: button, card, input, label,
-  select, dialog, sheet, tabs, badge, calendar, sonner, textarea, table, popover,
-  dropdown-menu, checkbox. Add more with `npx shadcn@latest add <component>`.
-- `src/lib/api.ts` — the typed fetch layer: `apiGet<T>`, `apiPost<T>`,
-  `apiPut<T>`, `apiPatch<T>`, `apiDelete<T>`, all relative to base `/api`,
-  throwing `ApiError` (with `status` and the parsed body) on any non-2xx.
-  **Nothing infers across the Python boundary** — you declare the response type
-  yourself as a TS interface mirroring the endpoint's Pydantic model, and keeping
-  the two in sync is a manual discipline. When you change a Pydantic model,
-  change its TS interface in the same edit.
-- `src/pages/Home.tsx` is a minimal example of the wiring: TanStack Query's `useQuery`
-  with `apiGet<StatusCheck[]>("/status")` as the `queryFn`. It is a **non-blocking
-  connectivity probe**, not a proof of the round trip — the result is deliberately
-  discarded so the splash renders identically with no backend. `apiGet<T>` does no
-  runtime validation either; `T` is your assertion, not a check. See the
-  static-preview rule in `TEMPLATE.md` §4 for why no page may be gated on a fetch.
+**When will degradation accelerate?**
 
-## TypeScript
+**When should we pit?**
 
-`frontend/tsconfig.app.json` / `tsconfig.node.json` have `strict: true`. In the
-pod:
+**Can we trust the prediction?**
 
-```bash
-cd frontend && yarn typecheck
-```
+---
 
-— plain `tsc --noEmit` run from `frontend/` checks ZERO files (root tsconfig uses
-project references with `"files": []`) and exits 0 even with type errors. Always
-use `-b` for the frontend. Lint with `cd frontend && yarn lint` (oxlint).
+## Our Solution
 
-## Data fetching
+TRACE treats tyre degradation as a **signal extraction problem**.
 
-TanStack Query is wired: `QueryClientProvider` in `src/main.tsx`, `useQuery` demo
-in `src/pages/Home.tsx` (see above). Use `useQuery`/`useMutation`, not
-fetch-in-`useEffect`.
+### 1. ISOLATE
+Separates the tyre-age signal from measurable external factors affecting lap time.
 
-## Completion gate (tier 1)
+### 2. FILTER
+Classifies laps as clean, compromised, or unusable so unreliable observations do not distort the degradation model.
 
-When the build is complete, run tier 1 once, all in the same turn: a curl smoke
-over the key `/api` endpoints (assert status AND a response field, plus one
-negative case), `cd frontend && yarn typecheck`, and ONE happy-path browser pass
-through the core user journey. Clean on all three → finish; any failure is a real
-bug — fix it, re-run the failed check, and escalate to the testing subagent.
-No routine typecheck/lint/smoke passes during the build — tier 1 runs exactly once.
+### 3. EXPLAIN
+Breaks down changes in pace into tyre degradation, traffic, track evolution, and other supported factors.
 
+### 4. PREDICT
+Forecasts future degradation, useful tyre life, and the onset of accelerated degradation or the **tyre cliff**.
 
-## Testing
+### 5. OPTIMIZE
+Simulates tyre compounds and pit timings using projected race pace to identify better strategic decisions.
 
-Two lanes.
+### 6. VALIDATE
+Compares practice predictions with actual race-day behaviour to measure model accuracy and identify prediction errors.
 
-**Backend (pytest)** — specs in `backend/tests/` as `test_*.py`, run with:
+---
 
-```bash
-cd /app/backend && pytest
-```
+## Why TRACE?
 
-`backend/pytest.ini` is canonical: `addopts = -n 2 --dist loadscope` (pytest-xdist,
-already parallel — do not pass your own `-n`) and `asyncio_mode = auto` (so
-`async def test_...` needs no marker). Serial is `-n 0`, **never**
-`-p no:xdist` (that errors, because `addopts` still passes `-n`/`--dist`).
-`backend/tests/conftest.py` is pre-scaffolded — a sync `client` fixture
-(`httpx.Client` rooted at `/api`), an async `aclient`, and an `api_url()` helper,
-all pointed at `BACKEND_URL` (default `http://localhost:8001`). Tests hit the
-live uvicorn process, so the app under test is the one the browser sees. Add
-app-specific fixtures below the marker; do not re-create the file.
+Most systems ask:
 
-**Frontend (Playwright)** — `/app/tests/` is pre-scaffolded:
-`playwright.config.ts` (canonical — edit the marked lines only),
-`fixtures/helpers.ts`, and a `package.json` that resolves
-`@playwright/test@1.62.0` (node_modules baked into the image). Write specs into
-`tests/e2e/`. Do NOT re-create the config/helpers or install/upgrade playwright —
-matching Chromium browsers live at `/pw-browsers`.
+> **"How fast is the tyre degrading?"**
 
-The backend lane is pytest: this template's backend is Python, so `vitest` does
-not apply to it.
+TRACE asks:
 
-## Pod conventions
+> **"How much of the slowdown is actually the tyre, what caused the rest, what happens next, and can we prove our prediction was right?"**
 
-This template runs under supervisord in the Emergent agent pod — supersedes any
-local-run instructions above.
+This makes TRACE more than a tyre degradation predictor.
 
-- Backend, frontend, and `mongod` are each a supervisor program. After code or
-  config changes, restart and wait for readiness:
+It is a **closed-loop motorsport intelligence system** connecting telemetry analysis, prediction, strategy simulation, and real-world validation.
 
-  ```bash
-  sudo supervisorctl restart frontend backend
-  until curl -sf -o /dev/null http://localhost:3000; do sleep 2; done
-  ```
+---
 
-- Status, only after a restart you triggered:
-  `sudo supervisorctl status frontend backend`. Logs:
-  `/var/log/supervisor/backend.err.log`, `backend.out.log`,
-  `frontend.err.log`.
-- App in a browser: the pod's preview URL (frontend, port `3000`). Backend API
-  directly at port `8001`.
-- `mongod` runs locally in the pod (`--bind_ip_all`); `MONGO_URL` in
-  `backend/.env` points at `localhost`, no separate Mongo container.
-- Both dev servers hot-reload on file edits (uvicorn `--reload` for the backend,
-  Vite HMR for the frontend); no rebuild step needed for normal iteration. A
-  restart is still needed after changing `.env`, `requirements.txt`, or
-  `vite.config.ts`.
+## Key Features
+
+### Command Center
+A unified view of the current tyre state, degradation rate, predicted tyre cliff, model confidence, and key session insights.
+
+### Data Hub
+Upload telemetry in CSV or JSON format and inspect available variables and data coverage.
+
+### Lap Classification
+Automatically identifies clean and compromised laps before degradation modelling.
+
+### Degradation Analysis
+Builds a normalized tyre degradation signal from available telemetry.
+
+### Pace Decomposition
+Explains why lap pace changed instead of attributing every slowdown to tyre wear.
+
+### Tyre Intelligence
+Compares degradation behaviour across tyre compounds and tyre ages.
+
+### Strategy Simulator
+Evaluates different pit laps and tyre combinations using projected race pace.
+
+### Practice → Race Validation
+Compares predicted degradation with actual race-day behaviour.
+
+### AI Race Engineer
+Provides a natural-language interface for querying the current session analysis and strategy insights.
+
+---
+
+## System Architecture
+
+```text
+             RACE TELEMETRY
+             CSV / JSON
+                  |
+                  v
+          +----------------+
+          |   DATA HUB      |
+          | Ingestion       |
+          | Data Coverage   |
+          +-------+--------+
+                  |
+                  v
+          +----------------+
+          | LAP CLASSIFIER  |
+          | Clean / Traffic |
+          | Flags / Outlap  |
+          +-------+--------+
+                  |
+                  v
+          +----------------+
+          | DATA PROCESSING |
+          | Feature Analysis|
+          | Normalization   |
+          +-------+--------+
+                  |
+                  v
+          +----------------+
+          |   ML ANALYSIS   |
+          | Degradation     |
+          | Cliff Prediction|
+          +-------+--------+
+                  |
+                  v
+          +----------------+
+          | STRATEGY ENGINE |
+          | Pit Windows     |
+          | Tyre Choices    |
+          | Race Pace       |
+          +-------+--------+
+                  |
+                  v
+          +----------------+
+          | TRACE DASHBOARD |
+          | Insights        |
+          | Visualizations  |
+          +-------+--------+
+                  |
+                  v
+          +----------------+
+          |    VALIDATION   |
+          | Practice vs Race|
+          | Error Analysis  |
+          +----------------+
