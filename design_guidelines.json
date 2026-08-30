@@ -1,0 +1,91 @@
+{
+  "project": "TRACE - AI Motorsport Intelligence",
+  "theme": "dark",
+  "typography": {
+    "headings": "IBM Plex Sans",
+    "body": "Inter",
+    "monospace": "JetBrains Mono",
+    "rules": [
+      "No generic sans fonts like Inter or Roboto for headings. IBM Plex Sans brings the necessary engineering/technical authority.",
+      "ALL data values, telemetry metrics, and tabular data MUST use JetBrains Mono (or IBM Plex Mono) for tabular, anti-jitter alignment.",
+      "Headings should be uppercase with tight tracking (tracking-tight or tracking-tighter) for a tactical dashboard feel.",
+      "Overlines and labels must be uppercase, text-xs, tracking-[0.2em].",
+      "Do not exceed text-4xl for the largest headings. This is an engineering workstation, not a marketing page."
+    ]
+  },
+  "colors": {
+    "background": "#050505",
+    "surface": "#0F0F0F",
+    "surface_hover": "#1A1A1A",
+    "border": "#222222",
+    "border_highlight": "#383838",
+    "text_primary": "#F1F5F9",
+    "text_secondary": "#8B929A",
+    "accent_red": "#DC2626",
+    "accent_amber": "#F59E0B",
+    "accent_green": "#10B981",
+    "trace_signal": "#38BDF8",
+    "trace_noise": "#262626",
+    "rules": [
+      "Near-black backgrounds (#050505) with dark graphite panels (#0F0F0F).",
+      "Use 1px technical borders everywhere to separate panels. NO SHADOWS.",
+      "Restrained use of color: Red is for alerts/actions, Amber for warnings, Green ONLY for positive/normal states.",
+      "No gradients. Color is for function and data visualization, not decoration."
+    ]
+  },
+  "layouts": {
+    "strategy": "High Density Grid (Mode B)",
+    "rules": [
+      "Use grid-cols-12 or grid-cols-24 for the main dashboard area to allow dense, technical panel arrangements.",
+      "Tight spacing: gap-2 or gap-4. Minimal padding inside panels (p-3 or p-4).",
+      "Persistent Left Sidebar (w-64) containing navigation (Command Center, Data Hub, Trace Lab, Strategy, Validation, AI Race Engineer).",
+      "Sharp edges: Use rounded-none or max rounded-sm. No excessive rounded cards.",
+      "Use border-collapse techniques to create a 'Technical Grid' look with exposed skeletons."
+    ]
+  },
+  "visual_enhancers": {
+    "borders": "1px solid #222222 on all panels. Active panels get a #383838 or subtle accent colored top-border (2px).",
+    "surfaces": "Flat solid surfaces only. NO GLASSMORPHISM. This is an engineering tool, glass implies refraction which reduces clarity.",
+    "textures": "Subtle graph-paper or engineering gridlines (bg-[size:20px_20px] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)]) in empty spaces."
+  },
+  "data_provenance": {
+    "description": "Strict labeling for all metrics and data points. Never invent arbitrary data.",
+    "labels": {
+      "MEASURED": "Subtle gray outline badge, white text.",
+      "DERIVED": "Cyan outline badge, cyan text.",
+      "MODEL_PREDICTION": "Purple/Indigo outline badge, purple text.",
+      "UNAVAILABLE": "Muted red text, strikethrough.",
+      "DEMO": "Amber outline badge, amber text."
+    }
+  },
+  "components": {
+    "buttons": "Sharp corners (rounded-none), 1px borders, hover effects that invert background/text or add a subtle left border highlight. Primary actions use accent_red.",
+    "charts": "Use Recharts. Thicker, vibrant lines for the 'TRACE SIGNAL'. Thin, low-opacity, gray lines for 'RAW NOISE'. Always include monospace axes and technical tooltips with a dark graphite background and 1px border. No smooth curves, use monotone or step for telemetry accuracy.",
+    "tables": "Dense rows (h-8 or h-10). Tabular numbers. Explicit Lap Classification table (clean, contaminated, out, in, pit, yellow, etc.) using subtle row background tints for excluded/abnormal laps.",
+    "sidebar": "Darker than the main background (#030303), thin right border. Navigation items should look like terminal tabs or technical directories.",
+    "data_hub": "File upload dropzone with deterministic CSV/JSON parse state. Clear indicators for 'detected field availability', 'coverage', and 'data quality'."
+  },
+  "motion": {
+    "rules": [
+      "Subtle, instantaneous transitions (duration-75 or duration-150).",
+      "No bouncy spring animations. Motion should feel like a high-performance military/motorsport HUD.",
+      "Fade-in data streams. Immediate hover feedback for data inspection."
+    ]
+  },
+  "instructions_to_main_agent": {
+    "tech_stack": "React (using .js/.jsx, NOT .tsx), Tailwind CSS, Shadcn UI primitives (customized for sharp borders and dark mode), Recharts, Lucide React / Phosphor Icons.",
+    "data_integrity": "DO NOT FABRICATE telemetry, grip, fuel, temperatures, or SHAP scores. Use deterministic demo data payloads only. Build the flow to parse a mock uploaded CSV/JSON.",
+    "core_flow": "Implement the EXACT layout: 1. Command Center, 2. Data Hub, 3. Trace Lab, 4. Strategy, 5. Validation, 6. AI Race Engineer.",
+    "chart_modes": "In Command Center, the Degradation Signal chart MUST have toggleable modes: RAW, CORRECTED, PREDICTED, ALL.",
+    "testing": "All interactive elements MUST include data-testid attributes (e.g., data-testid='upload-telemetry-btn', data-testid='strategy-simulate-btn')."
+  },
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": {
+    "rule_1": "You tend to converge toward generic SaaS aesthetics. Force the 'F1 Race Engineer Workstation' look: dense, sharp, dark, heavily bordered, monospace-heavy.",
+    "rule_2": "NEVER use a global transition:all. Apply specific, fast transitions to avoid breaking transforms.",
+    "rule_3": "Do NOT center-align the app. Technical dashboards must be left-aligned and structured to grid-cols.",
+    "rule_4": "Do NOT use emoji icons (🤖, etc). Use high-quality Phosphor or Lucide icons.",
+    "rule_5": "Avoid empty states that look like generic consumer apps. If data is missing, display 'AWAITING TELEMETRY' in monospace with a loading cursor block.",
+    "rule_6": "Always explicitly set text color on hover/focus states to ensure contrast over dark graphite panels."
+  },
+  "image_urls": {}
+}
