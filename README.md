@@ -9,7 +9,8 @@ TRACE is an AI-powered motorsport intelligence platform designed to solve one of
 Instead of simply plotting lap time against tyre age, TRACE analyses telemetry, identifies unreliable laps, accounts for measurable confounding factors, predicts degradation behaviour, evaluates pit strategies, and validates predictions against actual race performance.
 
 ---
-![Uploading Screenshot 2026-08-30 at 1.49.02 AM.png…]()
+<img width="1440" height="804" alt="Screenshot 2026-08-30 at 1 49 33 AM" src="https://github.com/user-attachments/assets/05ccbc08-30b4-4ade-aaf9-0863311fe890" />
+
 
 ## The Problem
 
